@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
@@ -12,16 +13,25 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
+    public Text PlayerNameText;
+
+    public Text HighScoreText;
+    public Text HighScoreNameText;
+
+    public string currentHighScoreName;
+    public int currentHighScore;
     
     private bool m_Started = false;
     private int m_Points;
     
     private bool m_GameOver = false;
 
-    
+
     // Start is called before the first frame update
     void Start()
     {
+        LoadHighScore();
+        PlayerNameText.text = TitleUIHandler.Instance.playerNameStr;
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -66,11 +76,53 @@ public class MainManager : MonoBehaviour
     {
         m_Points += point;
         ScoreText.text = $"Score : {m_Points}";
+        if (m_Points > currentHighScore)
+        {
+            currentHighScore = m_Points;
+            currentHighScoreName = PlayerNameText.text;
+            HighScoreNameText.text = currentHighScoreName;
+            HighScoreText.text = currentHighScore.ToString();
+        }
     }
 
     public void GameOver()
     {
+        SaveHighScore();
         m_GameOver = true;
         GameOverText.SetActive(true);
     }
+
+    [System.Serializable]
+    class SaveData
+    {
+        public string name;
+        public int highScore;
+    }
+
+    public void SaveHighScore()
+    { 
+        SaveData data = new SaveData();
+        data.name = currentHighScoreName;
+        data.highScore = currentHighScore;
+
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadHighScore()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            currentHighScoreName = data.name;
+            currentHighScore = data.highScore;
+            HighScoreNameText.text = currentHighScoreName;
+            HighScoreText.text = currentHighScore.ToString();
+
+        }
+    }
+    
 }
